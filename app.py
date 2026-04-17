@@ -5,35 +5,33 @@ import base64
 import zipfile
 
 # ==========================================
-# 🎨 심플한 기본 UI + 필수 기능 CSS
+# 🎨 画面幅を広く使うための設定 (Wide Layout)
 # ==========================================
-st.set_page_config(page_title="DropMail Builder", layout="centered")
+# 📌 ここを "wide" に戻したことで、画面いっぱいに広く使えるようになりました！
+st.set_page_config(page_title="DropMail Builder", layout="wide")
 
 st.markdown("""
 <style>
-    /* 画面幅を660px(余裕を持たせて700px)に制限 */
-    .block-container {
-        max-width: 700px !important; 
-        padding-bottom: 5rem !important;
-    }
-
-    /* 追加ボタンをスクロール追従(Sticky)にする（シンプルバージョン） */
+    /* 📌 追加ボタンのメニューだけをスクロール追従(Sticky)にする */
     div[data-testid="stHorizontalBlock"]:first-of-type {
         position: -webkit-sticky;
         position: sticky;
-        top: 2.875rem;
+        top: 2rem;
         z-index: 999;
         background-color: white;
-        padding: 10px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        border: 1px solid #f0f0f0;
-        margin-bottom: 20px;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border: 1px solid #eeeeee;
+        margin-bottom: 30px;
     }
+    
+    /* 区切り線を少し控えめに */
+    hr { margin: 2em 0; border-color: #f0f0f0; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 画像最適化 ---
+# --- 画像最適化（990pxで高画質維持） ---
 def get_optimized_image_bytes(uploaded_file):
     img = Image.open(uploaded_file)
     if img.mode in ("RGBA", "P"): img = img.convert("RGB")
@@ -42,6 +40,7 @@ def get_optimized_image_bytes(uploaded_file):
     img.save(buffer, format="JPEG", quality=85, optimize=True) 
     return buffer.getvalue()
 
+# --- 画像のURLパス生成 ---
 def get_image_src(img_bytes, filename, is_preview):
     if is_preview:
         b64 = base64.b64encode(img_bytes).decode()
@@ -50,10 +49,10 @@ def get_image_src(img_bytes, filename, is_preview):
         return f"img/{filename}"
 
 st.title("💌 DropMail Builder")
-st.write("シンプルで使いやすいメルマガ構築ツールです。")
+st.write("画面を広く使って、快適にメルマガを作成しましょう！")
 
 # ==========================================
-# セッション初期化
+# セッション初期化（ブロックの追加状態を記憶）
 # ==========================================
 if 'layout_blocks' not in st.session_state:
     st.session_state['layout_blocks'] = []
@@ -64,22 +63,25 @@ def add_text_block(): st.session_state['layout_blocks'].append("text")
 def clear_blocks(): st.session_state['layout_blocks'] = []
 
 # ==========================================
-# 🧩 追従(Sticky)するブロック追加UI
+# 🧩 追従(Sticky)するブロック追加メニュー
 # ==========================================
 col1, col2, col3, col4 = st.columns(4)
 with col1: st.button("➕ 画像 (1列)", on_click=add_single_block, use_container_width=True)
 with col2: st.button("➕ 画像 (2列)", on_click=add_double_block, use_container_width=True)
 with col3: st.button("📝 テキスト", on_click=add_text_block, use_container_width=True)
-with col4: st.button("🗑️ リセット", on_click=clear_blocks, use_container_width=True)
+with col4: st.button("🗑️ 全てリセット", on_click=clear_blocks, use_container_width=True)
 
 blocks_data = []
 image_counter = 1
 
+# ==========================================
+# メインの編集エリア
+# ==========================================
 for i, b_type in enumerate(st.session_state['layout_blocks']):
     
     if b_type == "single":
         st.markdown(f"### 📍 ブロック {i+1} : 画像 (1列)")
-        bg_color = st.color_picker("背景色", value="#ffffff", key=f"bg_{i}")
+        bg_color = st.color_picker("このセクションの背景色", value="#ffffff", key=f"bg_{i}")
         
         file = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"], key=f"file_{i}")
         if file:
@@ -87,7 +89,8 @@ for i, b_type in enumerate(st.session_state['layout_blocks']):
             with c1: st.image(file, use_container_width=True)
             with c2:
                 alt = st.text_input("代替テキスト (Alt)", key=f"alt_{i}")
-                link = st.text_input("リンクURL", key=f"link_{i}")
+                link = st.text_input("リンクURL (画像クリック時)", key=f"link_{i}")
+                # ※不要なボタンテキスト等の入力欄は削除済み！
 
             img_bytes = get_optimized_image_bytes(file)
             filename = f"image_{image_counter:02d}.jpg"
@@ -96,19 +99,19 @@ for i, b_type in enumerate(st.session_state['layout_blocks']):
             
     elif b_type == "double":
         st.markdown(f"### 📍 ブロック {i+1} : 画像 (2列)")
-        bg_color = st.color_picker("背景色", value="#ffffff", key=f"bg_{i}")
+        bg_color = st.color_picker("このセクションの背景色", value="#ffffff", key=f"bg_{i}")
 
         c_left, c_right = st.columns(2)
         with c_left:
-            file_l = st.file_uploader("◀️ 左画像", type=["png", "jpg", "jpeg"], key=f"file_l_{i}")
+            file_l = st.file_uploader("◀️ 左側の画像", type=["png", "jpg", "jpeg"], key=f"file_l_{i}")
             if file_l:
-                alt_l = st.text_input("左 - Alt", key=f"alt_l_{i}")
-                link_l = st.text_input("左 - リンク", key=f"link_l_{i}")
+                alt_l = st.text_input("左 - 代替テキスト", key=f"alt_l_{i}")
+                link_l = st.text_input("左 - リンクURL", key=f"link_l_{i}")
         with c_right:
-            file_r = st.file_uploader("▶️ 右画像", type=["png", "jpg", "jpeg"], key=f"file_r_{i}")
+            file_r = st.file_uploader("▶️ 右側の画像", type=["png", "jpg", "jpeg"], key=f"file_r_{i}")
             if file_r:
-                alt_r = st.text_input("右 - Alt", key=f"alt_r_{i}")
-                link_r = st.text_input("右 - リンク", key=f"link_r_{i}")
+                alt_r = st.text_input("右 - 代替テキスト", key=f"alt_r_{i}")
+                link_r = st.text_input("右 - リンクURL", key=f"link_r_{i}")
                 
         if file_l and file_r:
             bytes_l = get_optimized_image_bytes(file_l)
@@ -123,6 +126,7 @@ for i, b_type in enumerate(st.session_state['layout_blocks']):
         st.markdown(f"### 📝 ブロック {i+1} : テキスト")
         t_col1, t_col2 = st.columns(2)
         with t_col1:
+            # 📌 注釈(Caption)を階層に追加
             text_type = st.radio("テキスト階層", ["見出し", "本文", "注釈"], key=f"t_type_{i}", horizontal=True)
             text_align = st.radio("配置", ["左", "中央", "右"], key=f"t_align_{i}", horizontal=True)
             align_val = "left" if "左" in text_align else "center" if "中央" in text_align else "right"
@@ -130,7 +134,7 @@ for i, b_type in enumerate(st.session_state['layout_blocks']):
             bg_color = st.color_picker("背景色", value="#ffffff", key=f"t_bg_{i}")
             text_color = st.color_picker("文字色", value="#333333", key=f"t_color_{i}")
 
-        text_content = st.text_area("テキスト", key=f"text_only_{i}", height=120)
+        text_content = st.text_area("テキストを入力", key=f"text_only_{i}", height=120)
 
         if text_content:
             blocks_data.append({"type": "text_only", "content": text_content, "align": align_val, "bg_color": bg_color, "text_color": text_color, "text_type": text_type})
@@ -138,17 +142,17 @@ for i, b_type in enumerate(st.session_state['layout_blocks']):
     st.divider()
 
 # ==========================================
-# フッター設定 (最下部)
+# 📝 フッター設定 (画面の一番下に配置)
 # ==========================================
 st.markdown("### 📝 フッター設定")
-footer_text = st.text_input("コピーライト", value="© 2026 DropMail. All rights reserved.")
+footer_text = st.text_input("コピーライトテキスト", value="© 2026 DropMail. All rights reserved.")
 col_f1, col_f2 = st.columns(2)
-with col_f1: footer_bg_color = st.color_picker("フッター背景色", value="#333333")
-with col_f2: footer_text_color = st.color_picker("フッター文字色", value="#ffffff")
+with col_f1: footer_bg_color = st.color_picker("フッター背景色", value="#f4f4f4")
+with col_f2: footer_text_color = st.color_picker("フッター文字色", value="#999999")
 st.divider()
 
 # ==========================================
-# HTML生成エンジン
+# 🚀 HTML生成エンジン（メルマガの幅は660px固定！）
 # ==========================================
 def generate_html_code(blocks, is_preview=False):
     font_stack = "'Helvetica Neue', Helvetica, Arial, 'Hiragino Sans', 'Meiryo', sans-serif"
@@ -159,6 +163,7 @@ def generate_html_code(blocks, is_preview=False):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
     body {{ margin: 0; padding: 0; background-color: #f4f4f4; -webkit-font-smoothing: antialiased; }}
+    /* メルマガの幅はここで660pxに制限しています */
     .email-container {{ width: 100%; max-width: 660px; margin: 0 auto; background-color: #ffffff; }}
     .fluid-img {{ width: 100% !important; height: auto !important; display: block; border: 0; }}
     @media only screen and (max-width: 660px) {{ .stack-column {{ display: block !important; width: 100% !important; padding: 0 0 15px 0 !important; }} }}
@@ -177,6 +182,7 @@ def generate_html_code(blocks, is_preview=False):
             src = get_image_src(block["bytes"], block["filename"], is_preview)
             img_tag = f'<img src="{src}" alt="{block["alt"]}" class="fluid-img">'
             if block["link"]: img_tag = f'<a href="{block["link"]}" target="_blank">{img_tag}</a>'
+            
             html += f'<tr><td style="background-color: {bg}; padding: 0; margin: 0;">{img_tag}</td></tr>'
         
         elif block["type"] == "double":
@@ -188,7 +194,7 @@ def generate_html_code(blocks, is_preview=False):
             if block["right"]["link"]: img_r = f'<a href="{block["right"]["link"]}" target="_blank">{img_r}</a>'
 
             html += f"""
-            <tr><td style="background-color: {bg}; padding: 20px 15px;">
+            <tr><td style="background-color: {bg}; padding: 10px 15px;">
                 <table width="100%" border="0" cellspacing="0" cellpadding="0"><tr>
                     <th class="stack-column" width="48%" align="center" valign="top" style="font-weight: normal; padding-right: 2%;">{img_l}</th>
                     <th class="stack-column" width="48%" align="center" valign="top" style="font-weight: normal; padding-left: 2%;">{img_r}</th>
@@ -199,6 +205,7 @@ def generate_html_code(blocks, is_preview=False):
         elif block["type"] == "text_only":
             formatted_text = block["content"].replace('\n', '<br>')
             
+            # 📌 注釈は12pxで表示
             if "見出し" in block["text_type"]:
                 font_style = f"font-size: 24px; font-weight: bold; line-height: 1.4;"
             elif "注釈" in block["text_type"]:
@@ -214,6 +221,7 @@ def generate_html_code(blocks, is_preview=False):
             </td></tr>
             """
 
+    # フッター生成
     html += f"""
         </table>
     </td></tr>
@@ -229,9 +237,9 @@ def generate_html_code(blocks, is_preview=False):
     return html
 
 # ==========================================
-# ダウンロード & プレビュー
+# 📦 ダウンロード & プレビュー
 # ==========================================
-if st.button("🚀 生成 & ダウンロード準備", type="primary", use_container_width=True):
+if st.button("🚀 HTML・ZIP を生成する", type="primary", use_container_width=True):
     if not blocks_data:
         st.warning("コンテンツを追加してください。")
     else:
@@ -248,12 +256,13 @@ if st.button("🚀 生成 & ダウンロード準備", type="primary", use_conta
         
         st.success("🎉 ZIPファイルの準備が完了しました！")
         st.download_button(
-            label="📥 ZIPファイルをダウンロード",
+            label="📥 ZIPファイルをダウンロード (index.html + imgフォルダ)",
             data=zip_buffer.getvalue(),
             file_name="dropmail_package.zip",
             mime="application/zip"
         )
         
-        st.markdown("### 👁️ プレビュー")
+        st.markdown("### 👁️ プレビュー (幅660px固定)")
         preview_html = generate_html_code(blocks_data, is_preview=True)
-        st.components.v1.html(preview_html, height=800, scrolling=True)
+        # プレビュー枠が小さくならないように横幅を広く確保
+        st.components.v1.html(preview_html, height=800, width=800, scrolling=True)
