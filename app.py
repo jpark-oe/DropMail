@@ -12,21 +12,6 @@ st.set_page_config(page_title="DropMail Builder", layout="wide")
 
 st.markdown("""
 <style>
-    /* 📌 追加ボタンのメニューだけをスクロール追従(Sticky)にする */
-    div[data-testid="stHorizontalBlock"]:first-of-type {
-        position: -webkit-sticky;
-        position: sticky;
-        top: 2rem;
-        z-index: 999;
-        background-color: white;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border: 1px solid #eeeeee;
-        margin-bottom: 30px;
-    }
-    
-    /* 区切り線を少し控えめに */
     hr { margin: 2em 0; border-color: #f0f0f0; }
 </style>
 """, unsafe_allow_html=True)
@@ -70,6 +55,41 @@ with col1: st.button("➕ 画像 (1列)", on_click=add_single_block, use_contain
 with col2: st.button("➕ 画像 (2列)", on_click=add_double_block, use_container_width=True)
 with col3: st.button("📝 テキスト", on_click=add_text_block, use_container_width=True)
 with col4: st.button("🗑️ 全てリセット", on_click=clear_blocks, use_container_width=True)
+
+st.components.v1.html("""
+<script>
+(function() {
+    var timer;
+    function applySticky() {
+        try {
+            var doc = window.parent.document;
+            var blocks = doc.querySelectorAll('[data-testid="stHorizontalBlock"]');
+            if (blocks.length > 0) {
+                var btn = blocks[0];
+                btn.style.position = 'sticky';
+                btn.style.top = '60px';
+                btn.style.zIndex = '999';
+                btn.style.backgroundColor = 'white';
+                btn.style.padding = '12px';
+                btn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+                btn.style.borderRadius = '10px';
+                btn.style.border = '1px solid #eeeeee';
+                btn.style.marginBottom = '16px';
+            }
+        } catch(e) {}
+    }
+    setTimeout(applySticky, 100);
+    setTimeout(applySticky, 500);
+    try {
+        var obs = new MutationObserver(function() {
+            clearTimeout(timer);
+            timer = setTimeout(applySticky, 80);
+        });
+        obs.observe(window.parent.document.body, {childList: true, subtree: true});
+    } catch(e) {}
+})();
+</script>
+""", height=0)
 
 blocks_data = []
 image_counter = 1
